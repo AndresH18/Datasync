@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace CommunityToolkit.Datasync.Server;
 
-public partial class TableController<TEntity> : ODataController where TEntity : class, ITableData
+public partial class TableController<TEntity, TKey> : ODataController where TEntity : class, ITableData<TKey> where TKey : IParsable<TKey>, IEquatable<TKey>
 {
     /// <summary>
     /// Requests that the repository deletes an entity or marks an entity as deleted (depending on the EnableSoftDelete option).
@@ -20,10 +20,13 @@ public partial class TableController<TEntity> : ODataController where TEntity : 
     /// <exception cref="HttpException">Thrown if there is an HTTP exception, such as unauthorized usage.</exception>
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public virtual async Task<IActionResult> DeleteAsync([FromRoute] string id, CancellationToken cancellationToken = default)
+    public virtual async Task<IActionResult> DeleteAsync([FromRoute] string id,
+        CancellationToken cancellationToken = default)
     {
         Logger.LogInformation("DeleteAsync: {id}", id);
-        TEntity entity = await Repository.ReadAsync(id, cancellationToken).ConfigureAwait(false);
+
+        TKey entityId = ParseId(id);
+        TEntity entity = await Repository.ReadAsync(entityId, cancellationToken).ConfigureAwait(false);
 
         if (!AccessControlProvider.EntityIsInView(entity))
         {
@@ -39,20 +42,21 @@ public partial class TableController<TEntity> : ODataController where TEntity : 
             throw new HttpException(StatusCodes.Status410Gone);
         }
 
-        Request.ParseConditionalRequest(entity, out byte[] version);
+        Request.ParseConditionalRequest<TEntity, TKey>(entity, out byte[] version);
 
         if (Options.EnableSoftDelete)
         {
             Logger.LogInformation("DeleteAsync: deleted {id} (soft-delete)", id);
             entity.Deleted = true;
-            await AccessControlProvider.PreCommitHookAsync(TableOperation.Update, entity, cancellationToken).ConfigureAwait(false);
+            await AccessControlProvider.PreCommitHookAsync(TableOperation.Update, entity, cancellationToken)
+                .ConfigureAwait(false);
             await Repository.ReplaceAsync(entity, version, cancellationToken).ConfigureAwait(false);
             await PostCommitHookAsync(TableOperation.Update, entity, cancellationToken).ConfigureAwait(false);
         }
         else
         {
             Logger.LogInformation("DeleteAsync: deleted {id} (hard-delete)", id);
-            await Repository.DeleteAsync(id, version, cancellationToken).ConfigureAwait(false);
+            await Repository.DeleteAsync(entityId, version, cancellationToken).ConfigureAwait(false);
             await PostCommitHookAsync(TableOperation.Delete, entity, cancellationToken).ConfigureAwait(false);
         }
 

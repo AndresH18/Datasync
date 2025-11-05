@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace CommunityToolkit.Datasync.Server;
 
-public partial class TableController<TEntity> : ODataController where TEntity : class, ITableData
+public partial class TableController<TEntity, TKey> : ODataController where TEntity : class, ITableData<TKey> where TKey : IParsable<TKey>, IEquatable<TKey>
 {
     /// <summary>
     /// Retrieves an entity from the repository.
@@ -24,7 +24,7 @@ public partial class TableController<TEntity> : ODataController where TEntity : 
     public virtual async Task<IActionResult> ReadAsync([FromRoute] string id, CancellationToken cancellationToken = default)
     {
         Logger.LogInformation("ReadAsync: {id}", id);
-        TEntity entity = await Repository.ReadAsync(id, cancellationToken).ConfigureAwait(false);
+        TEntity entity = await Repository.ReadAsync(ParseId(id), cancellationToken).ConfigureAwait(false);
 
         if (!AccessControlProvider.EntityIsInView(entity))
         {
@@ -40,7 +40,7 @@ public partial class TableController<TEntity> : ODataController where TEntity : 
             throw new HttpException(StatusCodes.Status410Gone);
         }
 
-        Request.ParseConditionalRequest(entity, out _);
+        Request.ParseConditionalRequest<TEntity, TKey>(entity, out _);
 
         Logger.LogInformation("ReadAsync: read {entity}", entity.ToJsonString());
         return Ok(entity);

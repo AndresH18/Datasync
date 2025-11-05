@@ -12,7 +12,7 @@ namespace CommunityToolkit.Datasync.Server.Private;
 /// </summary>
 /// <typeparam name="TEntity">The type of entity used in the repository.</typeparam>
 [ExcludeFromCodeCoverage]
-internal class Repository<TEntity> : IRepository<TEntity> where TEntity : ITableData
+internal class Repository<TEntity, TKey> : IRepository<TEntity, TKey> where TEntity : ITableData<TKey>
 {
     /// <inheritdoc />
     public ValueTask<IQueryable<TEntity>> AsQueryableAsync(CancellationToken cancellationToken = default)
@@ -27,13 +27,13 @@ internal class Repository<TEntity> : IRepository<TEntity> where TEntity : ITable
     }
 
     /// <inheritdoc />
-    public ValueTask DeleteAsync(string id, byte[]? version = null, CancellationToken cancellationToken = default)
+    public ValueTask DeleteAsync(TKey id, byte[]? version = null, CancellationToken cancellationToken = default)
     {
         throw new InvalidOperationException("The repository must be set within the table controller.");
     }
 
     /// <inheritdoc />
-    public ValueTask<TEntity> ReadAsync(string id, CancellationToken cancellationToken = default)
+    public ValueTask<TEntity> ReadAsync(TKey id, CancellationToken cancellationToken = default)
     {
         throw new InvalidOperationException("The repository must be set within the table controller.");
     }
@@ -44,3 +44,6 @@ internal class Repository<TEntity> : IRepository<TEntity> where TEntity : ITable
         throw new InvalidOperationException("The repository must be set within the table controller.");
     }
 }
+
+internal class Repository<TEntity> : Repository<TEntity, string>, IRepository<TEntity>
+    where TEntity : ITableData<string>;

@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace CommunityToolkit.Datasync.Server;
 
-public partial class TableController<TEntity> : ODataController where TEntity : class, ITableData
+public partial class TableController<TEntity, TKey> : ODataController where TEntity : class, ITableData<TKey> where TKey : IParsable<TKey>, IEquatable<TKey>
 {
     /// <summary>
     /// Creates a new entity in the repository.

@@ -21,7 +21,7 @@ using System.Globalization;
 
 namespace CommunityToolkit.Datasync.Server;
 
-public partial class TableController<TEntity> : ODataController where TEntity : class, ITableData
+public partial class TableController<TEntity, TKey> : ODataController where TEntity : class, ITableData<TKey> where TKey : IParsable<TKey>, IEquatable<TKey>
 {
     private const string SkipParameterName = "$skip";
     private const string TopParameterName = "$top";
@@ -72,7 +72,7 @@ public partial class TableController<TEntity> : ODataController where TEntity : 
         // Determine the dataset to be queried for this user.
         IQueryable<TEntity> dataset = (await Repository.AsQueryableAsync(cancellationToken).ConfigureAwait(false))
             .ApplyDataView(AccessControlProvider.GetDataView())
-            .ApplyDeletedView(Request, Options.EnableSoftDelete);
+            .ApplyDeletedView<TEntity, TKey>(Request, Options.EnableSoftDelete);
 
         // Apply the requested filter from the OData transaction.
         IQueryable<TEntity> filteredDataset = dataset.ApplyODataFilter(queryOptions.Filter, querySettings);
@@ -90,7 +90,7 @@ public partial class TableController<TEntity> : ODataController where TEntity : 
 
         // Now apply the OrderBy, Skip, and Top options to the dataset.
         IQueryable<TEntity> orderedDataset = filteredDataset
-            .ApplyODataOrderBy(queryOptions.OrderBy, querySettings)
+            .ApplyODataOrderBy<TEntity, TKey>(queryOptions.OrderBy, querySettings)
             .ApplyODataPaging(queryOptions, querySettings);
 
         // Get the list of items within the dataset that need to be returned.

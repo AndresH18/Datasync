@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace CommunityToolkit.Datasync.Server;
 
-public partial class TableController<TEntity> : ODataController where TEntity : class, ITableData
+public partial class TableController<TEntity, TKey> : ODataController where TEntity : class, ITableData<TKey> where TKey : IParsable<TKey>, IEquatable<TKey>
 {
     /// <summary>
     /// Replaces the value of an entity within the repository with new data.
@@ -24,16 +24,17 @@ public partial class TableController<TEntity> : ODataController where TEntity : 
     public virtual async Task<IActionResult> ReplaceAsync([FromRoute] string id, CancellationToken cancellationToken = default)
     {
         Logger.LogInformation("CreateAsync");
+        TKey parsedId = ParseId(id);
         TEntity entity = await DeserializeJsonContent(cancellationToken).ConfigureAwait(false);
         Logger.LogInformation("ReplaceAsync: {id} {entity}", id, entity.ToJsonString());
 
-        if (id != entity.Id)
+        if (parsedId.Equals(entity.Id))
         {
             Logger.LogWarning("ReplaceAsync: {id} statusCode=400 id mismatch", id);
             throw new HttpException(StatusCodes.Status400BadRequest);
         }
 
-        TEntity existing = await Repository.ReadAsync(id, cancellationToken).ConfigureAwait(false);
+        TEntity existing = await Repository.ReadAsync(parsedId, cancellationToken).ConfigureAwait(false);
 
         if (!AccessControlProvider.EntityIsInView(existing))
         {
@@ -48,14 +49,14 @@ public partial class TableController<TEntity> : ODataController where TEntity : 
             throw new HttpException(StatusCodes.Status410Gone);
         }
 
-        Request.ParseConditionalRequest(existing, out byte[] version);
+        Request.ParseConditionalRequest<TEntity, TKey>(existing, out byte[] version);
         await AccessControlProvider.PreCommitHookAsync(TableOperation.Update, entity, cancellationToken).ConfigureAwait(false);
         await Repository.ReplaceAsync(entity, version, cancellationToken).ConfigureAwait(false);
         await PostCommitHookAsync(TableOperation.Update, entity, cancellationToken).ConfigureAwait(false);
 
         // Under certain (repository specific) circumstances, the entity may not be modified by the ReplaceAsync
         // operation, so we have to do an additional GET to ensure we are getting the right version of the entity
-        TEntity? updatedEntity = await Repository.ReadAsync(id, cancellationToken).ConfigureAwait(false);
+        TEntity? updatedEntity = await Repository.ReadAsync(parsedId, cancellationToken).ConfigureAwait(false);
 
         Logger.LogInformation("ReplaceAsync: replaced {entity}", updatedEntity.ToJsonString());
         return Ok(updatedEntity);

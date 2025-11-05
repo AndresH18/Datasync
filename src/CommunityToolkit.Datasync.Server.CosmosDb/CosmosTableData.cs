@@ -12,7 +12,7 @@ namespace CommunityToolkit.Datasync.Server.CosmosDb;
 public abstract class CosmosTableData : ITableData
 {
     /// <inheritdoc/>
-    public virtual string Id { get; set; } = string.Empty;
+    public virtual Guid Id { get; set; } = string.Empty;
     /// <inheritdoc/>
     public virtual bool Deleted { get; set; } = false;
     /// <inheritdoc/>

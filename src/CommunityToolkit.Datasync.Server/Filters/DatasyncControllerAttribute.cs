@@ -22,7 +22,7 @@ public class DatasyncControllerAttribute : ResultFilterAttribute, IExceptionFilt
     {
         if (context.Result is ObjectResult result)
         {
-            if (result.Value is ITableData entity)
+            if (result.Value is ITableData<TKey> entity)
             {
                 context.HttpContext.Response.Headers.SetConditionalHeaders(entity);
                 if (result.StatusCode == StatusCodes.Status201Created)
@@ -48,7 +48,7 @@ public class DatasyncControllerAttribute : ResultFilterAttribute, IExceptionFilt
                 ? new StatusCodeResult(exception.StatusCode)
                 : new JsonResult(exception.Payload, options.JsonSerializerOptions) { StatusCode = exception.StatusCode };
 
-            if (exception.Payload is ITableData entity)
+            if (exception.Payload is ITableData<TKey> entity)
             {
                 context.HttpContext.Response.Headers.SetConditionalHeaders(entity);
             }

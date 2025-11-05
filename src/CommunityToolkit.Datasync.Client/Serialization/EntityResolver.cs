@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#pragma warning disable SYSLIB1045 // Convert to 'GeneratedRegexAttribute'.
-
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -13,18 +11,19 @@ namespace CommunityToolkit.Datasync.Client.Serialization;
 /// <summary>
 /// A caching resolver for the entity metadata
 /// </summary>
-internal static class EntityResolver
+internal static partial class EntityResolver
 {
     /// <summary>
     /// The internal cache of entity property information.
     /// </summary>
-    internal static ConcurrentDictionary<Type, EntityPropertyInfo> cache = [];
+    private static readonly ConcurrentDictionary<Type, EntityPropertyInfo> cache = [];
 
     /// <summary>
     /// The regular expression for an entity identity property.
     /// </summary>
-    private static readonly Regex EntityIdentity = new("^[a-zA-Z0-9][a-zA-Z0-9_.|:-]{0,126}$", RegexOptions.Compiled);
-
+    [GeneratedRegex("^[a-zA-Z0-9][a-zA-Z0-9_.|:-]{0,126}$", RegexOptions.Compiled)]
+    private static partial Regex EntityIdentity { get; }
+    
     /// <summary>
     /// Returns true if the provided value is a valid entity ID.
     /// </summary>

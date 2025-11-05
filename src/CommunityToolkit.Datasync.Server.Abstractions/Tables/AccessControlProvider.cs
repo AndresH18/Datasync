@@ -11,7 +11,7 @@ namespace CommunityToolkit.Datasync.Server;
 /// allows the connecting client to do anything, but doesn't do anything extra.
 /// </summary>
 /// <typeparam name="TEntity">The type of entity stored within the table.</typeparam>
-public class AccessControlProvider<TEntity> : IAccessControlProvider<TEntity> where TEntity : ITableData
+public class AccessControlProvider<TEntity, TKey> : IAccessControlProvider<TEntity, TKey> where TEntity : ITableData<TKey>
 {
     /// <inheritdoc />
     public virtual Expression<Func<TEntity, bool>>? GetDataView()
@@ -29,3 +29,5 @@ public class AccessControlProvider<TEntity> : IAccessControlProvider<TEntity> wh
     public virtual ValueTask PreCommitHookAsync(TableOperation operation, TEntity entity, CancellationToken cancellationToken = default)
         => ValueTask.CompletedTask;
 }
+
+public class AccessControlProvider<TEntity> : AccessControlProvider<TEntity, string>,IAccessControlProvider<TEntity> where TEntity : ITableData<string>;

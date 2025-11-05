@@ -14,7 +14,7 @@ namespace CommunityToolkit.Datasync.Server;
 /// Do not implement this interface directly.  Instead, inherit from the <see cref="AccessControlProvider{TEntity}"/> class.
 /// </remarks>
 /// <typeparam name="TEntity">The type of entity stored within the table.</typeparam>
-public interface IAccessControlProvider<TEntity> where TEntity : ITableData
+public interface IAccessControlProvider<TEntity, TKey> where TEntity : ITableData<TKey>
 {
     /// <summary>
     /// Returns a LINQ <see cref="Expression{TDelegate}"/> predicate to limit the data that the
@@ -56,3 +56,5 @@ public interface IAccessControlProvider<TEntity> where TEntity : ITableData
     /// <returns>A task that completes when the operation is finished.</returns>
     ValueTask PostCommitHookAsync(TableOperation operation, TEntity entity, CancellationToken cancellationToken = default);
 }
+
+public interface IAccessControlProvider<TEntity> : IAccessControlProvider<TEntity, string> where TEntity : ITableData<string>;

@@ -43,7 +43,7 @@ internal static class InternalExtensions
     /// <param name="request">The current <see cref="HttpRequest"/> being processed.</param>
     /// <param name="enableSoftDelete">A flag to indicate if soft-delete is enabled on the table being queried.</param>
     /// <returns>An updated <see cref="IQueryable{T}"/> representing the new query.</returns>
-    internal static IQueryable<T> ApplyDeletedView<T>(this IQueryable<T> query, HttpRequest request, bool enableSoftDelete) where T : ITableData
+    internal static IQueryable<T> ApplyDeletedView<T, TKey>(this IQueryable<T> query, HttpRequest request, bool enableSoftDelete) where T : ITableData<TKey>
         => !enableSoftDelete || request.ShouldIncludeDeletedEntities() ? query : query.Where(e => !e.Deleted);
 
     /// <summary>
@@ -65,7 +65,7 @@ internal static class InternalExtensions
     /// <param name="orderingQueryOption">The ordering query option to apply.</param>
     /// <param name="settings">The query settings being used.</param>
     /// <returns>A modified <see cref="IQueryable{T}"/> representing the ordered data.</returns>
-    internal static IQueryable<T> ApplyODataOrderBy<T>(this IQueryable<T> query, OrderByQueryOption? orderingQueryOption, ODataQuerySettings settings) where T : ITableData
+    internal static IQueryable<T> ApplyODataOrderBy<T, TKey>(this IQueryable<T> query, OrderByQueryOption? orderingQueryOption, ODataQuerySettings settings) where T : ITableData<TKey>
         => orderingQueryOption?.ApplyTo(query, settings).ThenBy(e => e.Id) ?? query.OrderBy(e => e.Id);
 
     /// <summary>
@@ -108,7 +108,7 @@ internal static class InternalExtensions
     /// <param name="accessControlProvider">The <see cref="IAccessControlProvider{TEntity}"/> that controls access to entities.</param>
     /// <param name="entity">The entity being checked.</param>
     /// <returns><c>true</c> if the entity is in view; <c>false</c> otherwise.</returns>
-    internal static bool EntityIsInView<TEntity>(this IAccessControlProvider<TEntity> accessControlProvider, TEntity entity) where TEntity : ITableData
+    internal static bool EntityIsInView<TEntity, TKey>(this IAccessControlProvider<TEntity, TKey> accessControlProvider, TEntity entity) where TEntity : ITableData<TKey>
         => accessControlProvider.GetDataView()?.Compile().Invoke(entity) != false;
 
     /// <summary>
@@ -164,7 +164,7 @@ internal static class InternalExtensions
     /// <param name="entity">The entity being checked.</param>
     /// <param name="version">On conclusion, the version that was requested.</param>
     /// <exception cref="HttpException">Thrown if the conditional request requirements are not met.</exception>
-    internal static void ParseConditionalRequest<TEntity>(this HttpRequest request, TEntity entity, out byte[] version) where TEntity : ITableData
+    internal static void ParseConditionalRequest<TEntity, TKey>(this HttpRequest request, TEntity entity, out byte[] version) where TEntity : ITableData<TKey>
     {
         RequestHeaders headers = request.GetTypedHeaders();
         bool isFetch = request.Method.Equals("GET", StringComparison.InvariantCultureIgnoreCase);
@@ -197,7 +197,7 @@ internal static class InternalExtensions
     /// </summary>
     /// <param name="headers">The current header dictionary.</param>
     /// <param name="entity">Tne entity to use for setting conditional header values.</param>
-    internal static void SetConditionalHeaders(this IHeaderDictionary headers, ITableData entity)
+    internal static void SetConditionalHeaders<TKey>(this IHeaderDictionary headers, ITableData<TKey> entity)
     {
         _ = headers.Remove(HeaderNames.ETag);
         _ = headers.Remove(HeaderNames.LastModified);
